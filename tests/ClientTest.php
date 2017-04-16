@@ -103,4 +103,33 @@ class ClientTest extends TestCase
         $this->assertEquals($user->getEmail(), $returnedUser->getEmail());
         $this->assertGreaterThan(0, $returnedUser->getId());
     }
+
+    public function testUserNotFound()
+    {
+        $loop = EventLoop\Factory::create();
+        $connector = new Socket\Connector($loop);
+
+        $user = new Messages\User();
+        $user->setId(120);
+
+        $request = new Messages\Request();
+        $request->setUser($user);
+
+        $response = new Messages\Response();
+
+        $connector->connect('127.0.0.1:8008')->then(function (Socket\ConnectionInterface $conn) use ($loop, $request, $response) {
+            $conn->write($request->encode());
+            $conn->on('data', function ($data) use ($response) {
+                $response->decode($data);
+            });
+        });
+
+        $loop->run();
+
+        $this->assertEquals($response->getData()->getFieldName(), 'error');
+
+        $error = $response->getData()->getValue();
+        $this->assertInstanceOf(Messages\Response_Error::class, $error);
+        $this->assertEquals($error->getCode(), '404');
+    }
 }
