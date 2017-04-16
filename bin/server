@@ -1,0 +1,75 @@
+#!/usr/bin/env php
+
+<?php
+if (!ini_get('date.timezone')) {
+    ini_set('date.timezone', 'UTC');
+}
+
+foreach (array(__DIR__ . '/../../../autoload.php', __DIR__ . '/../../vendor/autoload.php', __DIR__ . '/../vendor/autoload.php') as $file) {
+    if (file_exists($file)) {
+        define('MYAPP_COMPOSER_INSTALL', $file);
+        break;
+    }
+}
+
+unset($file);
+
+if (!defined('MYAPP_COMPOSER_INSTALL')) {
+    fwrite(STDERR,
+        'You need to set up the project dependencies using the following commands:' . PHP_EOL .
+        'wget http://getcomposer.org/composer.phar' . PHP_EOL .
+        'php composer.phar install' . PHP_EOL
+    );
+    die(1);
+}
+
+require MYAPP_COMPOSER_INSTALL;
+
+use MyApp\Messages;
+
+$loop = React\EventLoop\Factory::create();
+
+$request = new Messages\Request();
+$response = new Messages\Response();
+
+$users = [];
+
+$socket = new React\Socket\Server(8008, $loop);
+$socket->on('connection', function (React\Socket\ConnectionInterface $conn) use ($request, $response, &$users) {
+    echo "Connection made\n";
+
+    $conn->on('data', function ($data) use ($conn, $request, $response, &$users) {
+        echo "Data received.\n";
+        $request->decode($data);
+        switch ($request->getData()->getFieldName()) {
+            case 'user':
+                $user = $request->getData()->getValue();
+
+                if ($user->getId() && !$user->getName()) {
+                    echo "User lookup request.\n";
+                    if (!empty($users[$user->getId()])) {
+                        $user = $users[$user->getId()];
+                        $response->setUser($user);
+                    } else {
+                        $error = new Messages\Response_Error();
+                        $error->setCode("404");
+                        $error->setMessage("User Not Found");
+                        $response->setError($error);
+                    }
+                } elseif ($user->getId() && $user->getName()) {
+                    echo "Persist existing user request.\n";
+                    $users[$user->getId()] = $user;
+                    $response->setUser($user);
+                } else {
+                    echo "Persist new user request.\n";
+                    $user->setId(count($users) + 1);
+                    $users[$user->getId()] = $user;
+                    $response->setUser($user);
+                }
+        }
+        $conn->end($response->encode());
+    });
+});
+
+echo "Server listening...\n";
+$loop->run();

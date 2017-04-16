@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+import "user.proto";
+
+package MyApp.Messages;
+
+message Request {
+  oneof data {
+    User user = 1;
+  }
+}

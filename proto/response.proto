@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "user.proto";
+
+package MyApp.Messages;
+
+message Response {
+  message Error {
+    int32 code = 1;
+    string message = 2;
+  }
+
+  oneof data {
+    Error error = 1;
+    User user = 2;
+  }
+}

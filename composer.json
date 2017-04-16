@@ -1,0 +1,32 @@
+{
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Christopher Mancini",
+      "email": "cmancini@basho.com",
+      "homepage": "https://github.com/christophermancini"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "MyApp\\": "src/MyApp/",
+      "GPBMetadata\\": "src/GPBMetadata/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {"MyApp\\Tests\\": "tests/"}
+  },
+  "require": {
+        "react/socket": "^0.7.1",
+        "google/protobuf": "^3.2",
+        "phpunit/phpunit": "^6.1"
+  },
+  "scripts": {
+    "gen-protos": [
+      "protoc --php_out=src/ --proto_path=proto/ proto/request.proto",
+      "protoc --php_out=src/ --proto_path=proto/ proto/response.proto",
+      "protoc --php_out=src/ --proto_path=proto/ proto/user.proto"
+    ],
+    "test": "./vendor/bin/phpunit"
+  }
+}
